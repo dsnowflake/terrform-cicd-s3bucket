@@ -15,11 +15,17 @@ resource "aws_s3_bucket" "this" {
   # When used as a CloudFront log bucket, the ACLs need to be enabled for log delivery.
   # The documentation says ACLs should be disabled for new buckets, but for log delivery, they must be enabled.
   # This is a known caveat with CloudFront logging.
-  acl    = var.acl_enabled ? "log-delivery-write" : null
+  #acl    = var.acl_enabled ? "log-delivery-write" : null
 
   tags = {
     Name = var.bucket_name
   }
+}
+
+resource "aws_s3_bucket_acl" "this" {
+  count  = var.acl_enabled ? 1 : 0
+  bucket = aws_s3_bucket.this.id
+  acl    = "log-delivery-write"
 }
 
 resource "aws_s3_bucket_versioning" "this" {
