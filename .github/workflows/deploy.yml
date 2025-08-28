@@ -1,0 +1,71 @@
+name: Terraform CI/CD
+
+on:
+  pull_request:
+    branches:
+      - devel
+      - stage
+      - prod
+  push:
+    branches:
+      - devel
+      - stage
+      - prod
+
+jobs:
+  plan-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v1
+        with:
+          terraform_version: 1.0.0
+
+      # This step determines the environment and switches to its directory.
+      - name: Determine Environment
+        run: |
+          if [[ "${{ github.ref }}" == "refs/heads/devel" ]]; then
+            echo "ENV=devel" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/stage" ]]; then
+            echo "ENV=stage" >> $GITHUB_ENV
+          elif [[ "${{ github.ref }}" == "refs/heads/prod" ]]; then
+            echo "ENV=prod" >> $GITHUB_ENV
+          else
+            # For PRs, we'll use the target branch.
+            TARGET_BRANCH="${{ github.event.pull_request.base.ref }}"
+            if [[ "${TARGET_BRANCH}" == "devel" ]]; then
+              echo "ENV=devel" >> $GITHUB_ENV
+            elif [[ "${TARGET_BRANCH}" == "stage" ]]; then
+              echo "ENV=stage" >> $GITHUB_ENV
+            elif [[ "${TARGET_BRANCH}" == "prod" ]]; then
+              echo "ENV=prod" >> $GITHUB_ENV
+            fi
+          fi
+
+      - name: Configure AWS Credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-1
+
+      - name: Terraform Init
+        run: terraform init
+        working-directory: ./environments/${{ env.ENV }}
+
+      - name: Terraform Plan
+        run: terraform plan
+        working-directory: ./environments/${{ env.ENV }}
+
+      # Only apply changes on merge to a protected branch.
+      # This should be part of a separate job that requires approval for stage/prod.
+      - name: Terraform Apply & Deploy App
+        if: github.event_name == 'push' && github.ref != 'refs/heads/feature/*'
+        run: |
+          terraform apply -auto-approve
+          # Deploy static files to S3 after infrastructure is provisioned.
+          aws s3 sync ../../app-files/ s3://app-${{ env.ENV }}-s3-bucket --delete
+        working-directory: ./environments/${{ env.ENV }}
