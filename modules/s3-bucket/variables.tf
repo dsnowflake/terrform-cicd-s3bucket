@@ -8,8 +8,7 @@ variable "acl_enabled" {
   type        = bool
   default     = false
 }
-```modules/s3-bucket/main.tf`
-```hcl
+
 resource "aws_s3_bucket" "this" {
   bucket = var.bucket_name
   # This setting is required to allow CloudFront to write logs to the bucket.
@@ -41,8 +40,6 @@ resource "aws_s3_bucket_public_access_block" "this" {
   restrict_public_buckets = true
 }
 
-```modules/s3-bucket/outputs.tf`
-```hcl
 output "bucket_id" {
   description = "The ID of the S3 bucket."
   value       = aws_s3_bucket.this.id
