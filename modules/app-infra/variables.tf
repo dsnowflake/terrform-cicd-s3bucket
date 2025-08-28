@@ -2,8 +2,7 @@ variable "env" {
   description = "The environment name (e.g., devel, stage, prod)."
   type        = string
 }
-```modules/app-infra/main.tf`
-```hcl
+
 # Create the S3 bucket for the application's static files.
 # It uses the s3-bucket module we created earlier.
 module "app_s3_bucket" {
