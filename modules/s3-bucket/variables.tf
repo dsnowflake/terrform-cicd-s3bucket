@@ -20,6 +20,9 @@ resource "aws_s3_bucket" "this" {
   tags = {
     Name = var.bucket_name
   }
+# This setting is crucial for CloudFront logging.
+  # It explicitly allows ACLs, which are required for log delivery.
+  object_ownership = "ObjectWriter"
 }
 
 resource "aws_s3_bucket_acl" "this" {
