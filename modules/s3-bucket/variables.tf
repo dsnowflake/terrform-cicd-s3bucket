@@ -11,21 +11,9 @@ variable "acl_enabled" {
 
 resource "aws_s3_bucket" "this" {
   bucket = var.bucket_name
-  # This setting is required to allow CloudFront to write logs to the bucket.
-  # When used as a CloudFront log bucket, the ACLs need to be enabled for log delivery.
-  # The documentation says ACLs should be disabled for new buckets, but for log delivery, they must be enabled.
-  # This is a known caveat with CloudFront logging.
-  #acl    = var.acl_enabled ? "log-delivery-write" : null
-
   tags = {
     Name = var.bucket_name
   }
-}
-
-resource "aws_s3_bucket_acl" "this" {
-  count  = var.acl_enabled ? 1 : 0
-  bucket = aws_s3_bucket.this.id
-  acl    = "log-delivery-write"
 }
 
 resource "aws_s3_bucket_versioning" "this" {
@@ -36,14 +24,30 @@ resource "aws_s3_bucket_versioning" "this" {
 }
 
 resource "aws_s3_bucket_public_access_block" "this" {
-  # We block all public access by default, and CloudFront will use an OAI to access the files.
-  # This is a key security measure.
+  # This resource blocks public access, regardless of the object_ownership setting.
   bucket = aws_s3_bucket.this.id
 
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
   restrict_public_buckets = true
+}
+
+# This resource configures the bucket's object ownership settings.
+# It is created only for the logs bucket, as indicated by the count argument.
+resource "aws_s3_bucket_ownership_controls" "this" {
+  count  = var.acl_enabled ? 1 : 0
+  bucket = aws_s3_bucket.this.id
+  rule {
+    object_ownership = "ObjectWriter"
+  }
+}
+
+# This resource manages the ACL and is created only for the logs bucket.
+resource "aws_s3_bucket_acl" "this" {
+  count  = var.acl_enabled ? 1 : 0
+  bucket = aws_s3_bucket.this.id
+  acl    = "log-delivery-write"
 }
 
 output "bucket_id" {
