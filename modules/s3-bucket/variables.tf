@@ -33,6 +33,7 @@ resource "aws_s3_bucket_public_access_block" "this" {
   restrict_public_buckets = true
 }
 
+
 # This resource configures the bucket's object ownership settings.
 # It is created only for the logs bucket, as indicated by the count argument.
 resource "aws_s3_bucket_ownership_controls" "this" {
