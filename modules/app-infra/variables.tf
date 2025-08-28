@@ -94,9 +94,6 @@ resource "aws_cloudfront_distribution" "this" {
     cloudfront_default_certificate = true
   }
 }
-
-```modules/app-infra/outputs.tf`
-```hcl
 output "cloudfront_domain_name" {
   description = "The domain name of the CloudFront distribution."
   value       = aws_cloudfront_distribution.this.domain_name
